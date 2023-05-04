@@ -104,6 +104,12 @@ func (c *Controller) OnFinalShutdown(fn func() error) {
 	c.instance.OnFinalShutdown = append(c.instance.OnFinalShutdown, fn)
 }
 
+// OnUpgrade adds fn to the list of callback functions to execute
+// when the plugin need to do something before upgrade (eg. release port)
+func (c *Controller) OnUpgrade(fn func() error) {
+	c.instance.OnUpgrade = append(c.instance.OnUpgrade, fn)
+}
+
 // Context gets the context associated with the instance associated with c.
 func (c *Controller) Context() Context {
 	return c.instance.context

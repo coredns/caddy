@@ -16,14 +16,14 @@
 //
 // To use this package:
 //
-//   1. Set the AppName and AppVersion variables.
-//   2. Call LoadCaddyfile() to get the Caddyfile.
-//      Pass in the name of the server type (like "http").
-//      Make sure the server type's package is imported
-//      (import _ "github.com/coredns/caddy/caddyhttp").
-//   3. Call caddy.Start() to start Caddy. You get back
-//      an Instance, on which you can call Restart() to
-//      restart it or Stop() to stop it.
+//  1. Set the AppName and AppVersion variables.
+//  2. Call LoadCaddyfile() to get the Caddyfile.
+//     Pass in the name of the server type (like "http").
+//     Make sure the server type's package is imported
+//     (import _ "github.com/coredns/caddy/caddyhttp").
+//  3. Call caddy.Start() to start Caddy. You get back
+//     an Instance, on which you can call Restart() to
+//     restart it or Stop() to stop it.
 //
 // You should call Wait() on your instance to wait for
 // all servers to quit before your process exits.
@@ -113,6 +113,7 @@ type Instance struct {
 	OnRestartFailed []func() error // if restart failed
 	OnShutdown      []func() error // stopping, even as part of a restart
 	OnFinalShutdown []func() error // stopping, not as part of a restart
+	OnUpgrade       []func() error // stopping, not as part of a shutdown
 
 	// storing values on an instance is preferable to
 	// global state because these will get garbage-
