@@ -16,14 +16,14 @@
 //
 // To use this package:
 //
-//   1. Set the AppName and AppVersion variables.
-//   2. Call LoadCaddyfile() to get the Caddyfile.
-//      Pass in the name of the server type (like "http").
-//      Make sure the server type's package is imported
-//      (import _ "github.com/coredns/caddy/caddyhttp").
-//   3. Call caddy.Start() to start Caddy. You get back
-//      an Instance, on which you can call Restart() to
-//      restart it or Stop() to stop it.
+//  1. Set the AppName and AppVersion variables.
+//  2. Call LoadCaddyfile() to get the Caddyfile.
+//     Pass in the name of the server type (like "http").
+//     Make sure the server type's package is imported
+//     (import _ "github.com/coredns/caddy/caddyhttp").
+//  3. Call caddy.Start() to start Caddy. You get back
+//     an Instance, on which you can call Restart() to
+//     restart it or Stop() to stop it.
 //
 // You should call Wait() on your instance to wait for
 // all servers to quit before your process exits.
@@ -31,7 +31,9 @@ package caddy
 
 import (
 	"bytes"
+	"crypto/sha512"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -121,6 +123,9 @@ type Instance struct {
 	// to access this value safely
 	Storage   map[interface{}]interface{}
 	StorageMu sync.RWMutex
+
+	// store a digest of the used configuration
+	ConfigDigest [64]byte
 }
 
 // Instances returns the list of instances.
@@ -599,6 +604,12 @@ func ValidateAndExecuteDirectives(cdyfile Input, inst *Instance, justValidate bo
 		return err
 	}
 
+	sblocksJson, err := json.Marshal(sblocks)
+	if err != nil {
+		return err
+	}
+	inst.ConfigDigest = sha512.Sum512(sblocksJson)
+
 	inst.context = stype.NewContext(inst)
 	if inst.context == nil {
 		return fmt.Errorf("server type %s produced a nil Context", stypeName)
@@ -1030,3 +1041,17 @@ var (
 
 // CtxKey is a value type for use with context.WithValue.
 type CtxKey string
+
+// ConfigDigest returns a digest value of the provided caddy.Input
+func ConfigDigest(cdyfile Input) ([64]byte, error) {
+	sblocks, err := loadServerBlocks(cdyfile.ServerType(), cdyfile.Path(), bytes.NewReader(cdyfile.Body()))
+	if err != nil {
+		return [64]byte{}, err
+	}
+
+	sblocksJson, err := json.Marshal(sblocks)
+	if err != nil {
+		return [64]byte{}, err
+	}
+	return sha512.Sum512(sblocksJson), nil
+}
