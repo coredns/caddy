@@ -1048,7 +1048,6 @@ func ConfigDigest(cdyfile Input) ([64]byte, error) {
 	if err != nil {
 		return [64]byte{}, err
 	}
-
 	sblocksJson, err := json.Marshal(sblocks)
 	if err != nil {
 		return [64]byte{}, err
