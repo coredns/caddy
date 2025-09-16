@@ -744,3 +744,60 @@ func TestSnippetAcrossMultipleFiles(t *testing.T) {
 		t.Errorf("Expected argument to be '%s' but was '%s'", expected, actual)
 	}
 }
+
+func TestSnippetImportCycle(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name: "direct self-import",
+			input: `
+	(loop) {
+	import loop
+	}
+	import loop
+	`,
+		},
+		{
+			name: "self-import via recursion",
+			input: `
+	(loop) {
+	{ }
+	import loop
+	}
+	import loop
+	`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := testParser(tt.input)
+			_, err := p.parseAll()
+			if err == nil {
+				t.Fatalf("expected error for snippet self-import cycle, got nil")
+			}
+		})
+	}
+}
+
+func TestFileImportCycleError(t *testing.T) {
+	fileA := writeStringToTempFileOrDie(t, "")
+	defer os.Remove(fileA)
+	fileB := writeStringToTempFileOrDie(t, "")
+	defer os.Remove(fileB)
+
+	if err := ioutil.WriteFile(fileA, []byte("import "+fileB), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(fileB, []byte("import "+fileA), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	p := testParser("import " + fileA)
+	_, err := p.parseAll()
+	if err == nil {
+		t.Fatalf("expected error for file import cycle, got nil")
+	}
+}
