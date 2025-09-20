@@ -15,12 +15,19 @@
 package caddyfile
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func init() {
+	// set a lower limit for testing only
+	maxSnippetExpansions = 10
+	maxFileExpansions = 10
+}
 
 func TestAllTokens(t *testing.T) {
 	tests := []struct {
@@ -799,5 +806,29 @@ func TestFileImportCycleError(t *testing.T) {
 	_, err := p.parseAll()
 	if err == nil {
 		t.Fatalf("expected error for file import cycle, got nil")
+	}
+}
+
+func TestFileImportDir(t *testing.T) {
+	dir, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// create 10x the maxFileExpansions files
+	// a single import with a glob should not error
+	for i := 0; i < maxFileExpansions*10; i++ {
+		fp := filepath.Join(dir, filepath.Base(dir)+"_"+fmt.Sprintf("%d", i))
+		if err := ioutil.WriteFile(fp, []byte(""), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	input := "import " + filepath.Join(dir, "*")
+	p := testParser(input)
+	_, err = p.parseAll()
+	if err != nil {
+		t.Fatalf("unexpected error importing temp dir via glob: %v", err)
 	}
 }

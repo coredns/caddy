@@ -60,7 +60,12 @@ type parser struct {
 }
 
 // maxSnippetExpansions is a hard cap to prevent excessively deep or cyclic snippet imports.
-const maxSnippetExpansions = 1000
+// set as a variable to allow modifications for testing
+var maxSnippetExpansions = 10000
+
+// maxFileExpansions is a hard cap to prevent excessively deep or cyclic file imports.
+// set as a variable to allow modifications for testing
+var maxFileExpansions = 100000
 
 func (p *parser) parseAll() ([]ServerBlock, error) {
 	var blocks []ServerBlock
@@ -268,7 +273,7 @@ func (p *parser) doImport() error {
 		p.snippetExpansions++
 		importedTokens = p.definedSnippets[importPattern]
 	} else {
-		if p.fileExpansions >= maxSnippetExpansions {
+		if p.fileExpansions >= maxFileExpansions {
 			return p.Errf("maximum file import depth (%d) exceeded", maxSnippetExpansions)
 		}
 		p.fileExpansions++
