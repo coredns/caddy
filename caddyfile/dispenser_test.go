@@ -167,6 +167,37 @@ func TestDispenser_NextBlock(t *testing.T) {
 	assertNextBlock(false, 8, 0) // empty block is as if it didn't exist
 }
 
+func TestDispenser_NextBlock_MakesProgressOrStopsOnEOF(t *testing.T) {
+	// Unclosed block should not cause NextBlock to loop without advancing
+	input := `foobar {
+  sub1 arg1`
+	d := NewDispenser("Testfile", strings.NewReader(input))
+
+	if !d.Next() { // foobar
+		t.Fatal("expected first token")
+	}
+
+	if !d.NextBlock() {
+		t.Fatal("expected to enter block with NextBlock")
+	}
+
+	// Iterate, ensuring each true result advanced the cursor,
+	// and that we terminate within a reasonable number of steps
+	const maxIters = 10
+	prevCursor := d.cursor
+	for i := 0; i < maxIters; i++ {
+		ok := d.NextBlock()
+		if !ok {
+			return
+		}
+		if d.cursor == prevCursor {
+			t.Fatalf("NextBlock(): did not advance cursor (stuck at %d) — potential infinite loop", d.cursor)
+		}
+		prevCursor = d.cursor
+	}
+	t.Fatalf("NextBlock(): exceeded %d iterations without terminating", maxIters)
+}
+
 func TestDispenser_Args(t *testing.T) {
 	var s1, s2, s3 string
 	input := `dir1 arg1 arg2 arg3
