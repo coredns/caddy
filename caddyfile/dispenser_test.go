@@ -198,6 +198,47 @@ func TestDispenser_NextBlock_MakesProgressOrStopsOnEOF(t *testing.T) {
 	t.Fatalf("NextBlock(): exceeded %d iterations without terminating", maxIters)
 }
 
+func TestDispenser_NextBlock_MultipleLevelsOfNestedBlocks(t *testing.T) {
+	input := `foobar1 {
+			    sub1 arg1
+			    sub2
+			    sub_foobar1 sub_foobar1_arg {
+			      sub3 arg3
+			      sub4
+			    }
+			  }
+			  foobar2 {
+			  }`
+	d := NewDispenser("Testfile", strings.NewReader(input))
+
+	assertNextBlock := func(shouldLoad bool, expectedCursor, expectedNesting int) {
+		if loaded := d.NextBlock(); loaded != shouldLoad {
+			t.Errorf("NextBlock(): Should return %v but got %v", shouldLoad, loaded)
+		}
+		if d.cursor != expectedCursor {
+			t.Errorf("NextBlock(): Expected cursor to be %d, was %d", expectedCursor, d.cursor)
+		}
+		if d.nesting != expectedNesting {
+			t.Errorf("NextBlock(): Nesting should be %d, not %d", expectedNesting, d.nesting)
+		}
+	}
+
+	assertNextBlock(false, -1, 0)
+	d.Next() // foobar1
+	assertNextBlock(true, 2, 1)
+	d.NextArg() // arg1
+	assertNextBlock(true, 4, 1)
+	assertNextBlock(true, 5, 1)
+	d.NextArg() // sub_foobar1_arg
+	assertNextBlock(true, 8, 2)
+	d.NextArg() // arg3
+	assertNextBlock(true, 10, 2)
+	assertNextBlock(false, 11, 1)
+	assertNextBlock(false, 12, 0)
+	d.Next()                      // foobar2
+	assertNextBlock(false, 15, 0) // empty block is as if it didn't exist
+}
+
 func TestDispenser_Args(t *testing.T) {
 	var s1, s2, s3 string
 	input := `dir1 arg1 arg2 arg3
