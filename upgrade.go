@@ -118,6 +118,13 @@ func Upgrade() error {
 				}
 			}
 		}
+
+		for i, onUpgradeFunc := range inst.OnUpgrade {
+			err := onUpgradeFunc()
+			if err != nil {
+				log.Printf("[WARN] OnUpgrade[%d] function returned error: %v", i, err)
+			}
+		}
 	}
 
 	// set up the command
