@@ -271,6 +271,15 @@ func RegisterEventHook(name string, hook EventHook) {
 	}
 }
 
+// RegisterOrUpdateEventHook plugs in hook. All the hooks should register themselves
+// and they must have a name.
+func RegisterOrUpdateEventHook(name string, hook EventHook) {
+	if name == "" {
+		panic("event hook must have a name")
+	}
+	eventHooks.Store(name, hook)
+}
+
 // EmitEvent executes the different hooks passing the EventType as an
 // argument. This is a blocking function. Hook developers should
 // use 'go' keyword if they don't want to block Caddy.
