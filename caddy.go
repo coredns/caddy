@@ -149,6 +149,7 @@ func (i *Instance) Stop() error {
 	instancesMu.Lock()
 	for j, other := range instances {
 		if other == i {
+			instances[j] = nil
 			instances = append(instances[:j], instances[j+1:]...)
 			break
 		}
@@ -502,6 +503,7 @@ func startWithListenerFds(cdyfile Input, inst *Instance, restartFds map[string][
 			instancesMu.Lock()
 			for i, otherInst := range instances {
 				if otherInst == inst {
+					instances[i] = nil
 					instances = append(instances[:i], instances[i+1:]...)
 					break
 				}
