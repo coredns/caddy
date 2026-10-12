@@ -59,6 +59,23 @@ func TestDispenser_Val_Next(t *testing.T) {
 	assertNext(false, 6, "dir3")
 }
 
+func TestDispenser_Offset(t *testing.T) {
+	input := "host {\n\tdir \"a b\"\n}"
+	d := NewDispenser("Testfile", strings.NewReader(input))
+
+	if off := d.Offset(); off != -1 {
+		t.Errorf("Offset(): Expected -1 when no token loaded, got %d", off)
+	}
+	for _, want := range []int{0, 5, 8, 12, 18} {
+		if !d.Next() {
+			t.Fatalf("Next(): Expected token at offset %d", want)
+		}
+		if off := d.Offset(); off != want {
+			t.Errorf("Offset(): Expected %d for '%s', got %d", want, d.Val(), off)
+		}
+	}
+}
+
 func TestDispenser_NextArg(t *testing.T) {
 	input := `dir1 arg1
 			  dir2 arg2 arg3

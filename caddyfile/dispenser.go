@@ -161,6 +161,15 @@ func (d *Dispenser) Line() int {
 	return d.tokens[d.cursor].Line
 }
 
+// Offset gets the byte offset of the current token. If there is no token
+// loaded, it returns -1.
+func (d *Dispenser) Offset() int {
+	if d.cursor < 0 || d.cursor >= len(d.tokens) {
+		return -1
+	}
+	return d.tokens[d.cursor].Offset
+}
+
 // File gets the filename of the current token. If there is no token loaded,
 // it returns the filename originally given when parsing started.
 func (d *Dispenser) File() string {

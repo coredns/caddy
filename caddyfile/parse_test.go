@@ -752,6 +752,55 @@ func TestSnippetAcrossMultipleFiles(t *testing.T) {
 	}
 }
 
+func TestTokenOffsetsAfterExpansion(t *testing.T) {
+	os.Setenv("OFFSET_TEST", "replaced")
+	defer os.Unsetenv("OFFSET_TEST")
+
+	imported := "\n\tdir2 b\n"
+	importFile := writeStringToTempFileOrDie(t, imported)
+	defer os.Remove(importFile)
+	absImportFile, err := filepath.Abs(importFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	input := "(snip) {\n\tdir1 a\n}\nhost {\n\timport snip\n\timport " + importFile + "\n\tdir3 {$OFFSET_TEST}\n}\n"
+	p := testParser(input)
+	blocks, err := p.parseAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(blocks) != 1 {
+		t.Fatalf("Expected 1 server block, got %d", len(blocks))
+	}
+
+	dir1 := strings.Index(input, "dir1")
+	for _, tc := range []struct {
+		dir    string
+		idx    int
+		file   string
+		text   string
+		offset int
+	}{
+		{"dir1", 0, "", "dir1", dir1},
+		{"dir1", 1, "", "a", dir1 + len("dir1 ")},
+		{"dir2", 0, absImportFile, "dir2", strings.Index(imported, "dir2")},
+		{"dir2", 1, absImportFile, "b", strings.Index(imported, "b")},
+		{"dir3", 1, "", "replaced", strings.Index(input, "{$OFFSET_TEST}")},
+	} {
+		tokens := blocks[0].Tokens[tc.dir]
+		if len(tokens) <= tc.idx {
+			t.Errorf("%s: expected at least %d tokens, got %d", tc.dir, tc.idx+1, len(tokens))
+			continue
+		}
+		tok := tokens[tc.idx]
+		if tok.File != tc.file || tok.Text != tc.text || tok.Offset != tc.offset {
+			t.Errorf("%s token %d: expected File=%q Text=%q Offset=%d, got File=%q Text=%q Offset=%d",
+				tc.dir, tc.idx, tc.file, tc.text, tc.offset, tok.File, tok.Text, tok.Offset)
+		}
+	}
+}
+
 func TestSnippetImportCycle(t *testing.T) {
 	tests := []struct {
 		name  string

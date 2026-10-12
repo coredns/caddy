@@ -29,6 +29,7 @@ type (
 		reader *bufio.Reader
 		token  Token
 		line   int
+		offset int
 	}
 
 	// Token represents a single parsable unit.
@@ -36,6 +37,9 @@ type (
 		File string
 		Line int
 		Text string
+		// Offset is the byte offset in File, at the opening quote if quoted.
+		// Omitted from JSON so encoded server blocks don't change.
+		Offset int `json:"-"`
 	}
 )
 
@@ -44,16 +48,19 @@ type (
 func (l *lexer) load(input io.Reader) error {
 	l.reader = bufio.NewReader(input)
 	l.line = 1
+	l.offset = 0
 
 	// discard byte order mark, if present
-	firstCh, _, err := l.reader.ReadRune()
+	firstCh, size, err := l.reader.ReadRune()
 	if err != nil {
 		if err == io.EOF {
 			return nil
 		}
 		return err
 	}
-	if firstCh != 0xFEFF {
+	if firstCh == 0xFEFF {
+		l.offset = size
+	} else {
 		err := l.reader.UnreadRune()
 		if err != nil {
 			return err
@@ -83,7 +90,7 @@ func (l *lexer) next() bool {
 	}
 
 	for {
-		ch, _, err := l.reader.ReadRune()
+		ch, size, err := l.reader.ReadRune()
 		if err != nil {
 			if len(val) > 0 {
 				return makeToken()
@@ -93,6 +100,8 @@ func (l *lexer) next() bool {
 			}
 			panic(err)
 		}
+		pos := l.offset
+		l.offset += size
 
 		if quoted {
 			if !escaped {
@@ -141,7 +150,7 @@ func (l *lexer) next() bool {
 		}
 
 		if len(val) == 0 {
-			l.token = Token{Line: l.line}
+			l.token = Token{Line: l.line, Offset: pos}
 			if ch == '"' {
 				quoted = true
 				continue
