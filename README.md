@@ -1,6 +1,6 @@
 THIS IS A FORK OF CADDY v1 - EVERYTHING IS STRIPPED EXCEPT THE PIECES NEEDED IN COREDNS.
 
-Issues are not enabled in this repository. Please raise any issues in coredns/coredns.
+Please report issues and feature requests in the [CoreDNS issue tracker](https://github.com/coredns/coredns/issues).
 
 ---
 
