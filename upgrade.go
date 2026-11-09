@@ -77,6 +77,15 @@ func Upgrade() error {
 	if err != nil {
 		return err
 	}
+	rpipeClosed, wpipeClosed := false, false
+	defer func() {
+		if !rpipeClosed {
+			rpipe.Close()
+		}
+		if !wpipeClosed {
+			wpipe.Close()
+		}
+	}()
 
 	// prepare a pipe that the child process will use to communicate
 	// its success with us by sending > 0 bytes

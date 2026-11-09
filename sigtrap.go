@@ -91,8 +91,8 @@ func executeShutdownCallbacks(signame string) (exitCode int) {
 func allShutdownCallbacks() []error {
 	var errs []error
 	instancesMu.Lock()
-	for _, inst := range instances {
-		errs = append(errs, inst.ShutdownCallbacks()...)
+	for i := len(instances) - 1; i >= 0; i-- {
+		errs = append(errs, instances[i].ShutdownCallbacks()...)
 	}
 	instancesMu.Unlock()
 	return errs
